@@ -1,12 +1,12 @@
 name: "CodeQL"
 
 on:
-  push:
-    branches: [ "main", "dev", "prod" ]
-  pull_request:
+  #push:
+  #  branches: [ "main", "dev", "prod" ]
+  #pull_request:
     # The branches below must be a subset of the branches above
-    branches: [ "main", "dev", "prod" ]
-    
+  #  branches: [ "main", "dev", "prod" ]
+  # Disabled for now 
   workflow_dispatch:
     
   schedule:
