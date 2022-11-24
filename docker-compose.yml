@@ -1,0 +1,33 @@
+version: '3.8'
+
+services:
+  rabbitmq:
+    image: rabbitmq:alpine
+    container_name: rabbitmq
+    hostname: rabbitmq
+    ports:
+      - 5672:5672
+      - 15672:15672
+    networks:
+      - rabbit-network
+
+  # frontend:
+  #   image: # will change this to my own image
+  #   ports:
+  #     - '0000:0000'
+  #   networks:
+  #     - frontend
+  #
+
+  backend:
+    image: golang:1.19.3-alpine # will change this to my own image
+    container_name: backend
+    hostname: backend
+    networks:
+      - backend
+      - rabbit-network
+
+networks:
+  rabbit-network: { driver: bridge } # change to host when its time for isolation
+  frontend: { driver: bridge }
+  backend: { driver: bridge }
