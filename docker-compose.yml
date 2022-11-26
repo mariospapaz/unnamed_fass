@@ -11,13 +11,13 @@ services:
     networks:
       - rabbit-network
 
-  # frontend:
-  #   image: # will change this to my own image
-  #   ports:
-  #     - '0000:0000'
-  #   networks:
-  #     - frontend
-  #
+  frontend:
+    build: ./frontend/
+    ports:
+      - '3000:3000'
+    networks:
+      - frontend
+      - rabbit-network
 
   backend:
     image: golang:1.19.3-alpine # will change this to my own image

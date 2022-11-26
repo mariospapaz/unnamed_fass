@@ -1,0 +1,8 @@
+main.svelte-1tky8bj{text-align:center;padding:1em;max-width:240px;margin:0 auto}h1.svelte-1tky8bj{color:#ff3e00;text-transform:uppercase;font-size:4em;font-weight:100}@media(min-width: 640px){main.svelte-1tky8bj{max-width:none}}button.svelte-v59wl9{border:0;cursor:pointer;border-radius:6px;padding:8px 12px;font-weight:bold;box-shadow:1px 2px 3px rgba(0,0,0,0.2)}.primary.svelte-v59wl9{background:#d91b42;color:white
+    }.secondary.svelte-v59wl9{background:#45c496;color:white
+    }.flat.svelte-v59wl9{box-shadow:none
+    }.primary.inverse.svelte-v59wl9{color:#d91b42;background:white;border:2px solid #d91b42
+    }.secondary.inverse.svelte-v59wl9{color:#45c496;background:white;border:2px solid #45c496
+    }.primary.disabled.svelte-v59wl9{pointer-events:none;background-color:whitesmoke;color:lightgrey
+    }.secondary.disabled.svelte-v59wl9{pointer-events:none;background-color:whitesmoke;color:lightgrey
+    }
