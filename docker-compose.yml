@@ -20,7 +20,7 @@ services:
       - rabbit-network
 
   backend:
-    image: golang:1.19.3-alpine # will change this to my own image
+    build: ./backend/
     container_name: backend
     hostname: backend
     networks:
