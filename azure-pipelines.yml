@@ -1,0 +1,16 @@
+# Go
+# Build your Go project.
+# Add steps that test, save build artifacts, deploy, and more:
+# https://docs.microsoft.com/azure/devops/pipelines/languages/go
+
+trigger:
+- main
+- dev
+
+pool:
+  vmImage: ubuntu-latest 
+
+steps:
+- script: |
+    go test && go build -v .
+  displayName: 'Set up the Go workspace'
