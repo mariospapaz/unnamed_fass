@@ -10,8 +10,11 @@ import (
 	cors "github.com/go-chi/cors"
 )
 
+const endpoint = "/api"
+
 // Sets up all necessary settings for the middleware, including CORS policies
 func MiddlewareSetup(r *chi.Mux) {
+	r.Use(middleware.Heartbeat("/"))
 	r.Use(middleware.Logger)
 	r.Use(middleware.RequestID)
 	r.Use(middleware.RealIP)
@@ -43,13 +46,21 @@ func MiddlewareSetup(r *chi.Mux) {
 
 // It has all endpoints organized in a function
 func HandleEndpoints(r *chi.Mux) {
-	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("welcome"))
+	r.Head(endpoint, func(w http.ResponseWriter, r *http.Request) {
+		w.Write(ApiMessage("I am fine and well."))
 	})
+
+	// Hardware
+	r.Get(endpoint+"/get_server", GetSystem)
+
+	// Docker
+	r.Get(endpoint+"/docker_version", GetDockerVersion)
+	r.Get(endpoint+"/get_network", GetNetwork)
+	r.Get(endpoint+"/get_network/inspect", GetNetworkInspect)
 }
 
 func main() {
-	log.Panicln("###### Starting FaaS API ######")
+	log.Println("###### Starting FaaS API ######")
 	r := chi.NewRouter()
 	MiddlewareSetup(r)
 	HandleEndpoints(r)

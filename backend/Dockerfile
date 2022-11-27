@@ -11,13 +11,24 @@ RUN adduser \
 
 WORKDIR $GOPATH/deadlines
 
-COPY ./deadlines .
+COPY . .
 
 RUN go mod download
 RUN go mod verify
 
-USER small-user
+RUN CGO_ENABLED=0 go build -o /main .
 
-RUN CGO_ENABLED=0 go build -o /main ./cmd
+
+FROM docker:rc-cli 
+USER root 
+RUN apk add curl
+USER small-user:small
+
+COPY --from=base /etc/passwd /etc/passwd
+COPY --from=base /etc/group /etc/group
+
+USER small-user:small-user
+
+COPY --from=base /main .
 
 ENTRYPOINT [ "/main" ]
