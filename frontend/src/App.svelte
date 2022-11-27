@@ -1,15 +1,20 @@
 <script>
-
-    import Button from './Button.svelte';
-
+    import Button, { Label } from '@smui/button';
+    let a = 0;
+    let b = 0;
 </script>
 
 <main>
 	<h1>Hello Beta Tester!</h1>
 	<p> Please be patient, frontend is last priority is this project.</p>
 
-    <Button buttonType="primary">Login</Button>
-    <Button buttonType="primary">Make Demo instance</Button>
+    <Button on:click={() => a++} variant="raised">
+        <Label>Login</Label>
+    </Button>
+
+    <Button on:click={() => b++} variant="raised">
+        <Label>Open Demo instance</Label>
+    </Button>
 </main>
 
 <style>
