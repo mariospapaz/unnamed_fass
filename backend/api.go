@@ -10,8 +10,6 @@ import (
 	cors "github.com/go-chi/cors"
 )
 
-const endpoint = "/api"
-
 // Sets up all necessary settings for the middleware, including CORS policies
 func MiddlewareSetup(r *chi.Mux) {
 	r.Use(middleware.Heartbeat("/"))
@@ -21,6 +19,7 @@ func MiddlewareSetup(r *chi.Mux) {
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.Timeout(60 * time.Second))
+	r.Use(middleware.AllowContentType("application/json"))
 	r.Use(cors.Handler(cors.Options{
 		AllowedOrigins: []string{"*"},
 		AllowedMethods: []string{"GET", "POST", "DELETE", "HEAD"},
@@ -46,17 +45,23 @@ func MiddlewareSetup(r *chi.Mux) {
 
 // It has all endpoints organized in a function
 func HandleEndpoints(r *chi.Mux) {
-	r.Head(endpoint, func(w http.ResponseWriter, r *http.Request) {
+
+	r.Head("/api", func(w http.ResponseWriter, r *http.Request) {
 		w.Write(ApiMessage("I am fine and well."))
 	})
 
-	// Hardware
-	r.Get(endpoint+"/get_server", GetSystem)
+	r.Route("/api", func(r chi.Router) {
+		// Hardware
+		r.Get("/get_server", GetSystem)
 
-	// Docker
-	r.Get(endpoint+"/docker_version", GetDockerVersion)
-	r.Get(endpoint+"/get_network", GetNetwork)
-	r.Get(endpoint+"/get_network/inspect", GetNetworkInspect)
+		// Docker
+		r.Get("/docker/version", GetDockerVersion)
+		r.Get("/docker/network", GetNetwork)
+		r.Get("/docker/network/inspect/{network_name}", GetNetworkInspect)
+
+		r.Get("/docker/image/{image_name}", GetDockerImage)
+		r.Post("/docker/image/{image_name}", PullDockerImage)
+	})
 }
 
 func main() {
