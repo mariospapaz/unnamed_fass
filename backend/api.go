@@ -59,8 +59,11 @@ func HandleEndpoints(r *chi.Mux) {
 		r.Get("/docker/network", GetNetwork)
 		r.Get("/docker/network/inspect/{network_name}", GetNetworkInspect)
 
+		r.Get("/docker/image", GetDockerImages)
 		r.Get("/docker/image/{image_name}", GetDockerImage)
 		r.Post("/docker/image/{image_name}", PullDockerImage)
+		r.Delete("/docker/image/{image_name}", DeleteDockerImage)
+		r.Get("/docker/image/inspect/{image_name}", InspectDockerContainer)
 	})
 }
 
@@ -68,6 +71,7 @@ func main() {
 	log.Println("###### Starting FaaS API ######")
 	r := chi.NewRouter()
 	MiddlewareSetup(r)
+	SetupDockerClient()
 	HandleEndpoints(r)
 
 	http.ListenAndServe(":8080", r)
