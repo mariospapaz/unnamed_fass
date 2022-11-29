@@ -1,11 +1,30 @@
 <script lang="ts">
-    let votes = 0;
+
+    import { onMount } from "svelte";
+    const votes = "http://0.0.0.0:8080/api/get_votes";
+
+    let vote_count = 0;
+
+    onMount(async function () {
+        GetVotes();
+    });
+
     let has_voted = false;
+
+    async function GetVotes() {
+        const response = await fetch(votes);
+        const data = await response.json();
+        vote_count = data["votes"];
+    }
 
     function MakeVote() {
         if(!has_voted) {
-            ++votes;
+            const res = fetch(votes, {
+                            method: 'POST',
+                        });
+            
             has_voted = true;
+            GetVotes()
         }
     }
 
@@ -17,7 +36,7 @@
         
        <div class="vote">
         <button type="button" class="btn btn-success" on:click={MakeVote}>Star this Project</button>
-        Votes: {votes}
+        Votes: {vote_count}
        </div>
 
        <button type="button" class="btn btn-success">Login</button>
