@@ -58,12 +58,15 @@ func HandleEndpoints(r *chi.Mux) {
 		r.Get("/docker/version", GetDockerVersion)
 		r.Get("/docker/network", GetNetwork)
 		r.Get("/docker/network/inspect/{network_name}", GetNetworkInspect)
-
 		r.Get("/docker/image", GetDockerImages)
 		r.Get("/docker/image/{image_name}", GetDockerImage)
 		r.Post("/docker/image/{image_name}", PullDockerImage)
 		r.Delete("/docker/image/{image_name}", DeleteDockerImage)
 		r.Get("/docker/image/inspect/{image_name}", InspectDockerContainer)
+		r.Get("/docker/image/logs/{image_name}", GetContainerLogs)
+		r.Get("/docker/container/remove/{image_name}", ContainerRemove)
+		r.Get("/docker/container/stop/{image_name}", StopContainer)
+		r.Get("/docker/container/stats/{image_name}", ContainerStats)
 
 		// Database
 		r.Post("/get_votes", MakeVote)

@@ -53,12 +53,12 @@ func MakeVote(w http.ResponseWriter, r *http.Request) {
 func GetVotes(w http.ResponseWriter, r *http.Request) {
 	sql, err := sql.Open("sqlite3", "votes.db")
 	if err != nil {
+		log.Println("CONNECTION FAILED")
 		log.Println(err)
 	}
 	defer sql.Close()
 
 	rows, err := sql.Query(`SELECT VOTE FROM VOTES WHERE ID = 1;`)
-	log.Println(rows)
 	if err != nil {
 		log.Println(err)
 	}

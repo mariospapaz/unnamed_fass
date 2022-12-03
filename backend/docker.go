@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
@@ -125,6 +126,52 @@ func DeleteDockerImage(w http.ResponseWriter, r *http.Request) {
 // Inspects container ( must pass container ID or container Name )
 func InspectDockerContainer(w http.ResponseWriter, r *http.Request) {
 	image, err := Dc.ContainerInspect(context.Background(), chi.URLParam(r, "image_name"))
+	if err != nil {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+	RespondWithJSON(image, w)
+}
+
+// Gets Container docs ( must pass container ID or container name )
+func GetContainerLogs(w http.ResponseWriter, r *http.Request) {
+	image, err := Dc.ContainerLogs(context.Background(), chi.URLParam(r, "image_name"), types.ContainerLogsOptions{})
+	if err != nil {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+	RespondWithJSON(image, w)
+}
+
+func StartContainer(w http.ResponseWriter, r *http.Request) {
+	err := Dc.ContainerStart(context.Background(), chi.URLParam(r, "image_name"), types.ContainerStartOptions{})
+	if err != nil {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+	RespondWithJSON(ApiMessage("Started container "+chi.URLParam(r, "image_name")), w)
+}
+func StopContainer(w http.ResponseWriter, r *http.Request) {
+	timeout := time.Minute * 5
+	err := Dc.ContainerStop(context.Background(), chi.URLParam(r, "image_name"), &timeout)
+	if err != nil {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+	RespondWithJSON(ApiMessage("Started container "+chi.URLParam(r, "image_name")), w)
+}
+
+func ContainerRemove(w http.ResponseWriter, r *http.Request) {
+	err := Dc.ContainerRemove(context.Background(), chi.URLParam(r, "image_name"), types.ContainerRemoveOptions{})
+	if err != nil {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+	RespondWithJSON(ApiMessage("Removed container "+chi.URLParam(r, "image_name")), w)
+}
+
+func ContainerStats(w http.ResponseWriter, r *http.Request) {
+	image, err := Dc.ContainerStats(context.Background(), chi.URLParam(r, "image_name"), false)
 	if err != nil {
 		w.WriteHeader(http.StatusNotFound)
 		return
