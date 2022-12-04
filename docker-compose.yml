@@ -28,6 +28,8 @@ services:
     container_name: backend
     hostname: backend
     restart: on-failure
+    depends_on:
+      - rabbitmq
 
     # Temporary exposed
     ports:

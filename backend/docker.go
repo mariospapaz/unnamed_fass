@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"log"
 	"net/http"
 	"time"
 
@@ -11,20 +10,32 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-var Dc *client.Client
+// Make a DockerClient struct and sets it up
+func MakeDockerClient(rmq *RabbitClient) *DockerClient {
+	dc := &DockerClient{
+		rabbit: rmq,
+	}
+	dc.SetupDockerClient()
+	return dc
+}
 
-// Setups a 'singleton' of a temporary global Dc (Dc = Docker Client)
-// Do not run the function more than once.
-func SetupDockerClient() {
+type DockerClient struct {
+	client *client.Client
+	rabbit *RabbitClient
+}
+
+// Loads Docker ClI, it will fail if docker is not installed
+func (d *DockerClient) SetupDockerClient() {
 	cli, err := client.NewClientWithOpts(client.FromEnv)
 	if err != nil {
-		log.Println(err)
+		d.rabbit.Send("logs", err.Error())
+		return
 	}
-	Dc = cli
+	d.client = cli
 }
 
 // Returns Docker version installed in the server
-func GetDockerVersion(w http.ResponseWriter, r *http.Request) {
+func (d *DockerClient) GetDockerVersion(w http.ResponseWriter, r *http.Request) {
 	// Cant find in documentation the getter
 	cmd := GetCommandStdout([]string{"docker version | grep Version | head -n1"})
 	w.WriteHeader(http.StatusFound)
@@ -32,43 +43,42 @@ func GetDockerVersion(w http.ResponseWriter, r *http.Request) {
 }
 
 // Retuns tons of info related to the docker server, networks, images, version etc
-func GetDockerInfo(w http.ResponseWriter, r *http.Request) {
-	msg, err := Dc.Info(context.Background())
+func (d *DockerClient) GetDockerInfo(w http.ResponseWriter, r *http.Request) {
+	msg, err := d.client.Info(context.Background())
 	if err != nil {
-		log.Println(err)
+		d.rabbit.Send("logs", err.Error())
 		return
 	}
 	RespondWithJSON(msg, w)
 }
 
 // Returns all network cards on the server
-func GetNetwork(w http.ResponseWriter, r *http.Request) {
-	networks, err := Dc.NetworkList(context.Background(), types.NetworkListOptions{})
+func (d *DockerClient) GetNetwork(w http.ResponseWriter, r *http.Request) {
+	networks, err := d.client.NetworkList(context.Background(), types.NetworkListOptions{})
 	if err != nil {
-		log.Println(err)
+		d.rabbit.Send("logs", err.Error())
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
-
 	RespondWithJSON(networks, w)
 }
 
 // Returns a specific network card
-func GetNetworkInspect(w http.ResponseWriter, r *http.Request) {
-	network, err := Dc.NetworkInspect(context.Background(), chi.URLParam(r, "network_name"), types.NetworkInspectOptions{})
+func (d *DockerClient) GetNetworkInspect(w http.ResponseWriter, r *http.Request) {
+	network, err := d.client.NetworkInspect(context.Background(), chi.URLParam(r, "network_name"), types.NetworkInspectOptions{})
 	if err != nil {
-		log.Println(err)
+		d.rabbit.Send("logs", err.Error())
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
-
 	RespondWithJSON(network, w)
 }
 
 // Returns all installed docker images into the server
-func GetDockerImages(w http.ResponseWriter, r *http.Request) {
-	images, err := Dc.ImageList(context.Background(), types.ImageListOptions{})
+func (d *DockerClient) GetDockerImages(w http.ResponseWriter, r *http.Request) {
+	images, err := d.client.ImageList(context.Background(), types.ImageListOptions{})
 	if err != nil {
+		d.rabbit.Send("logs", err.Error())
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
@@ -76,16 +86,14 @@ func GetDockerImages(w http.ResponseWriter, r *http.Request) {
 }
 
 // Returns a map of running containers. (containerID = containerImage)
-func GetRunningContainers(w http.ResponseWriter, r *http.Request) {
+func (d *DockerClient) GetRunningContainers(w http.ResponseWriter, r *http.Request) {
 	images := make(map[string]string)
-
-	containers, err := Dc.ContainerList(context.Background(), types.ContainerListOptions{})
+	containers, err := d.client.ContainerList(context.Background(), types.ContainerListOptions{})
 	if err != nil {
-		log.Println(err)
+		d.rabbit.Send("logs", err.Error())
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
-
 	for _, container := range containers {
 		images[container.ID[:10]] = container.Image
 	}
@@ -93,10 +101,11 @@ func GetRunningContainers(w http.ResponseWriter, r *http.Request) {
 }
 
 // Returns a installed image based on id
-func GetDockerImage(w http.ResponseWriter, r *http.Request) {
+func (d *DockerClient) GetDockerImage(w http.ResponseWriter, r *http.Request) {
 	// Not sure how to use it on postman
-	image, err := Dc.ImageSearch(context.Background(), chi.URLParam(r, "image_name"), types.ImageSearchOptions{})
+	image, err := d.client.ImageSearch(context.Background(), chi.URLParam(r, "image_name"), types.ImageSearchOptions{})
 	if err != nil {
+		d.rabbit.Send("logs", err.Error())
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
@@ -104,9 +113,10 @@ func GetDockerImage(w http.ResponseWriter, r *http.Request) {
 }
 
 // Downloads docker images, avoid abusing it.
-func PullDockerImage(w http.ResponseWriter, r *http.Request) {
-	image, err := Dc.ImagePull(context.Background(), chi.URLParam(r, "image_name"), types.ImagePullOptions{})
+func (d *DockerClient) PullDockerImage(w http.ResponseWriter, r *http.Request) {
+	image, err := d.client.ImagePull(context.Background(), chi.URLParam(r, "image_name"), types.ImagePullOptions{})
 	if err != nil {
+		d.rabbit.Send("logs", err.Error())
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
@@ -114,9 +124,10 @@ func PullDockerImage(w http.ResponseWriter, r *http.Request) {
 }
 
 // Removes docker image
-func DeleteDockerImage(w http.ResponseWriter, r *http.Request) {
-	image, err := Dc.ImageRemove(context.Background(), chi.URLParam(r, "image_name"), types.ImageRemoveOptions{})
+func (d *DockerClient) DeleteDockerImage(w http.ResponseWriter, r *http.Request) {
+	image, err := d.client.ImageRemove(context.Background(), chi.URLParam(r, "image_name"), types.ImageRemoveOptions{})
 	if err != nil {
+		d.rabbit.Send("logs", err.Error())
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
@@ -124,9 +135,10 @@ func DeleteDockerImage(w http.ResponseWriter, r *http.Request) {
 }
 
 // Inspects container ( must pass container ID or container Name )
-func InspectDockerContainer(w http.ResponseWriter, r *http.Request) {
-	image, err := Dc.ContainerInspect(context.Background(), chi.URLParam(r, "image_name"))
+func (d *DockerClient) InspectDockerContainer(w http.ResponseWriter, r *http.Request) {
+	image, err := d.client.ContainerInspect(context.Background(), chi.URLParam(r, "image_name"))
 	if err != nil {
+		d.rabbit.Send("logs", err.Error())
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
@@ -134,45 +146,50 @@ func InspectDockerContainer(w http.ResponseWriter, r *http.Request) {
 }
 
 // Gets Container docs ( must pass container ID or container name )
-func GetContainerLogs(w http.ResponseWriter, r *http.Request) {
-	image, err := Dc.ContainerLogs(context.Background(), chi.URLParam(r, "image_name"), types.ContainerLogsOptions{})
+func (d *DockerClient) GetContainerLogs(w http.ResponseWriter, r *http.Request) {
+	image, err := d.client.ContainerLogs(context.Background(), chi.URLParam(r, "image_name"), types.ContainerLogsOptions{})
 	if err != nil {
+		d.rabbit.Send("logs", err.Error())
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
 	RespondWithJSON(image, w)
 }
 
-func StartContainer(w http.ResponseWriter, r *http.Request) {
-	err := Dc.ContainerStart(context.Background(), chi.URLParam(r, "image_name"), types.ContainerStartOptions{})
+func (d *DockerClient) StartContainer(w http.ResponseWriter, r *http.Request) {
+	err := d.client.ContainerStart(context.Background(), chi.URLParam(r, "image_name"), types.ContainerStartOptions{})
 	if err != nil {
+		d.rabbit.Send("logs", err.Error())
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
 	RespondWithJSON(ApiMessage("Started container "+chi.URLParam(r, "image_name")), w)
 }
-func StopContainer(w http.ResponseWriter, r *http.Request) {
+func (d *DockerClient) StopContainer(w http.ResponseWriter, r *http.Request) {
 	timeout := time.Minute * 5
-	err := Dc.ContainerStop(context.Background(), chi.URLParam(r, "image_name"), &timeout)
+	err := d.client.ContainerStop(context.Background(), chi.URLParam(r, "image_name"), &timeout)
 	if err != nil {
+		d.rabbit.Send("logs", err.Error())
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
 	RespondWithJSON(ApiMessage("Started container "+chi.URLParam(r, "image_name")), w)
 }
 
-func ContainerRemove(w http.ResponseWriter, r *http.Request) {
-	err := Dc.ContainerRemove(context.Background(), chi.URLParam(r, "image_name"), types.ContainerRemoveOptions{})
+func (d *DockerClient) ContainerRemove(w http.ResponseWriter, r *http.Request) {
+	err := d.client.ContainerRemove(context.Background(), chi.URLParam(r, "image_name"), types.ContainerRemoveOptions{})
 	if err != nil {
+		d.rabbit.Send("logs", err.Error())
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
 	RespondWithJSON(ApiMessage("Removed container "+chi.URLParam(r, "image_name")), w)
 }
 
-func ContainerStats(w http.ResponseWriter, r *http.Request) {
-	image, err := Dc.ContainerStats(context.Background(), chi.URLParam(r, "image_name"), false)
+func (d *DockerClient) ContainerStats(w http.ResponseWriter, r *http.Request) {
+	image, err := d.client.ContainerStats(context.Background(), chi.URLParam(r, "image_name"), false)
 	if err != nil {
+		d.rabbit.Send("logs", err.Error())
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}

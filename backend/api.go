@@ -46,27 +46,32 @@ func MiddlewareSetup(r *chi.Mux) {
 // It has all endpoints organized in a function
 func HandleEndpoints(r *chi.Mux) {
 
+	rabbit := MakeRabbitClient()
+
+	docker := MakeDockerClient(rabbit)
+
 	r.Head("/api", func(w http.ResponseWriter, r *http.Request) {
 		w.Write(ApiMessage("I am fine and well."))
 	})
 
 	r.Route("/api", func(r chi.Router) {
+
 		// Hardware
 		r.Get("/get_server", GetSystem)
 
 		// Docker
-		r.Get("/docker/version", GetDockerVersion)
-		r.Get("/docker/network", GetNetwork)
-		r.Get("/docker/network/inspect/{network_name}", GetNetworkInspect)
-		r.Get("/docker/image", GetDockerImages)
-		r.Get("/docker/image/{image_name}", GetDockerImage)
-		r.Post("/docker/image/{image_name}", PullDockerImage)
-		r.Delete("/docker/image/{image_name}", DeleteDockerImage)
-		r.Get("/docker/image/inspect/{image_name}", InspectDockerContainer)
-		r.Get("/docker/image/logs/{image_name}", GetContainerLogs)
-		r.Get("/docker/container/remove/{image_name}", ContainerRemove)
-		r.Get("/docker/container/stop/{image_name}", StopContainer)
-		r.Get("/docker/container/stats/{image_name}", ContainerStats)
+		r.Get("/docker/version", docker.GetDockerVersion)
+		r.Get("/docker/network", docker.GetNetwork)
+		r.Get("/docker/network/inspect/{network_name}", docker.GetNetworkInspect)
+		r.Get("/docker/image", docker.GetDockerImages)
+		r.Get("/docker/image/{image_name}", docker.GetDockerImage)
+		r.Post("/docker/image/{image_name}", docker.PullDockerImage)
+		r.Delete("/docker/image/{image_name}", docker.DeleteDockerImage)
+		r.Get("/docker/image/inspect/{image_name}", docker.InspectDockerContainer)
+		r.Get("/docker/image/logs/{image_name}", docker.GetContainerLogs)
+		r.Get("/docker/container/remove/{image_name}", docker.ContainerRemove)
+		r.Get("/docker/container/stop/{image_name}", docker.StopContainer)
+		r.Get("/docker/container/stats/{image_name}", docker.ContainerStats)
 
 		// Database
 		r.Post("/get_votes", MakeVote)
@@ -77,10 +82,8 @@ func HandleEndpoints(r *chi.Mux) {
 func main() {
 	log.Println("###### Starting FaaS API ######")
 	r := chi.NewRouter()
-
 	ConnectDB()
 	MiddlewareSetup(r)
-	SetupDockerClient()
 	HandleEndpoints(r)
 	http.ListenAndServe(":8080", r)
 }
