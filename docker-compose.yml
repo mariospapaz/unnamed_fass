@@ -5,29 +5,43 @@ services:
     image: rabbitmq:alpine
     container_name: rabbitmq
     hostname: rabbitmq
+    restart: on-failure
     ports:
       - 5672:5672
       - 15672:15672
     networks:
-      - rabbit-network
+      - demo-network
 
   frontend:
     build: ./frontend/
+    container_name: frontend
+    hostname: frontend
+    restart: on-failure
+    depends_on: [backend, rabbitmq]
     ports:
       - '3000:3000'
     networks:
-      - frontend
-      - rabbit-network
+      - demo-network
 
   backend:
     build: ./backend/
     container_name: backend
     hostname: backend
+    restart: on-failure
+    depends_on:
+      - rabbitmq
+
+    # Temporary exposed
+    ports:
+      - '8080:8080'
+
     networks:
-      - backend
-      - rabbit-network
+      - demo-network
 
 networks:
-  rabbit-network: { driver: bridge } # change to host when its time for isolation
-  frontend: { driver: bridge }
-  backend: { driver: bridge }
+  demo-network:
+    external: false
+    ipam:
+      driver: default
+      config:
+        - subnet: '255.255.255.250/29'
