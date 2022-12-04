@@ -4,13 +4,10 @@
 # https://docs.microsoft.com/azure/devops/pipelines/languages/go
 
 trigger:
-- main
-- dev
-
-pool:
-  vmImage: ubuntu-latest 
+  - main
+  - dev
 
 steps:
-- script: |
-    go test && go build -v .
-  displayName: 'Set up the Go workspace'
+  - script: |
+      go test && go build -v .
+    displayName: 'Set up the Go workspace'
